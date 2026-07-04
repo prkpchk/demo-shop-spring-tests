@@ -1,25 +1,29 @@
 # demo-shop-spring-tests
 
+[![QA Tests](https://github.com/prkpchk/demo-shop-spring-tests/actions/workflows/tests.yml/badge.svg)](https://github.com/prkpchk/demo-shop-spring-tests/actions/workflows/tests.yml)
+
 Production-ready QA automation framework for the [demo-shop](https://github.com/prkpchk/demo-shop) Spring Boot e-commerce application.
 
 Covers API testing, UI testing, database verification, mobile testing, and full CI/CD integration.
 
+📊 **[Live Allure Report](https://prkpchk.github.io/demo-shop-spring-tests/)** — latest test results with run history and trends, published to GitHub Pages on every push.
+
 ## Stack
 
-| Concern | Technology |
-|---|---|
-| Language | Java 17 |
-| Build | Gradle 8 (Groovy DSL) |
+| Concern | Technology                                         |
+|---|----------------------------------------------------|
+| Language | Java 21                                            |
+| Build | Gradle 8 (Groovy DSL)                              |
 | DI / Config | Spring Boot 3.3 (test context only, no web server) |
-| API testing | Retrofit2 + OkHttp3 |
-| UI testing | Selenide 7 |
-| Mobile testing | Appium 2 + selenide-appium |
-| DB verification | Spring JdbcTemplate → PostgreSQL |
-| Test framework | JUnit 5 |
-| Reporting | Allure 2.25 |
-| Logging | SLF4J + Logback |
-| Test data | JavaFaker (random, no cleanup required) |
-| Containers | Testcontainers (PostgreSQL + Selenium Grid) |
+| API testing | Retrofit2 + OkHttp3                                |
+| UI testing | Selenide 7                                         |
+| Mobile testing | Appium 2 + selenide-appium                         |
+| DB verification | Spring JdbcTemplate → PostgreSQL                   |
+| Test framework | JUnit 5                                            |
+| Reporting | Allure 2.25                                        |
+| Logging | SLF4J + Logback                                    |
+| Test data | JavaFaker (random, no cleanup required)            |
+| Containers | Testcontainers (PostgreSQL + Selenium Grid)        |
 
 ---
 
@@ -27,7 +31,7 @@ Covers API testing, UI testing, database verification, mobile testing, and full 
 
 | Requirement | Version |
 |---|---|
-| Java | 17+ |
+| Java | 21+ |
 | Docker + Docker Compose | any recent |
 | Allure CLI (for local reports) | 2.x (`brew install allure` / `scoop install allure`) |
 | Appium Server (mobile only) | 2.x |
@@ -164,16 +168,37 @@ src/test/java/com/demoshop/qa/          # test classes only
 
 ## Parallelism
 
-Tests run in parallel by default (`junit-platform.properties`):
+Parallelism works on two levels: how the CI pipeline schedules the test suites, and how JUnit runs tests inside a single Gradle invocation.
+
+### Inside a Gradle run — parallel
+
+JUnit 5 parallel execution is enabled by default (`junit-platform.properties`): both test classes and test methods run concurrently on a fixed thread pool.
 
 ```properties
 junit.jupiter.execution.parallel.enabled=true
 junit.jupiter.execution.parallel.mode.default=concurrent
+junit.jupiter.execution.parallel.mode.classes.default=concurrent
 junit.jupiter.execution.parallel.config.strategy=fixed
 junit.jupiter.execution.parallel.config.fixed.parallelism=4
 ```
 
-Each test uses random JavaFaker data — no shared state, no cleanup needed.
+The pool width can be overridden per run:
+
+```bash
+./gradlew test -Djunit.jupiter.execution.parallel.config.fixed.parallelism=2
+```
+
+UI tests are safe to parallelize because Selenide keeps its WebDriver in a `ThreadLocal` — each thread drives its own browser. Keep the parallelism for UI runs lower than for API runs: every extra thread is an extra Chrome instance.
+
+### Across suites in CI — depends on the pipeline
+
+- **GitHub Actions** (`.github/workflows/tests.yml`): a single `test` job; the *API tests* and *UI tests* steps run **sequentially** (steps inside a job always do). API tests run with `parallelism=4`, then UI tests with `parallelism=2`. If the API step fails, the UI step is skipped.
+- **Jenkins** (`Jenkinsfile`): API and UI are separate **parallel** stages.
+- **GitLab CI** (`.gitlab-ci.yml`): jobs within the same stage run in parallel, subject to available runners.
+
+### Why it doesn't flake
+
+Every test registers its own random JavaFaker user and never touches seed data (except the ADMIN-only tests) — no shared state between threads, no cleanup needed. This same property makes `RetryExtension` retries safe: a re-run of a test method operates on data no other test can see.
 
 ---
 
