@@ -12,10 +12,10 @@ public class FakerUtils {
     private final Faker faker = new Faker();
 
     public String randomEmail() {
-        return faker.internet().emailAddress()
-                .replace("+", "")              // strip any + sign that may cause issues
-                .replace("..", ".")
-                + "." + System.nanoTime()      // guarantee uniqueness
+        String localPart = faker.name().username()
+                .replaceAll("[^a-zA-Z0-9._-]", "");   // keep only chars valid in the local part
+        return localPart
+                + "." + System.nanoTime()             // guarantee uniqueness
                 + "@test.com";
     }
 

@@ -43,7 +43,9 @@ public class RegisterPage extends BasePage {
     @Step("Click Register button and expect failure")
     public RegisterPage clickRegisterExpectFailure() {
         $(".auth-card .btn-primary").click();
-        $(".error-msg").shouldBe(visible);
+        // HTML5 validation (e.g. minLength on password) blocks submission without
+        // rendering .error-msg, so the reliable signal is staying on the form
+        $(".auth-card h1").shouldHave(text("Register"));
         return this;
     }
 

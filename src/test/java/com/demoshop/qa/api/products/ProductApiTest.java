@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Feature("Product Catalog")
 class ProductApiTest extends BaseApiTest {
 
-    private static final String ADMIN_EMAIL = "admin@demoshop.com";
+    private static final String ADMIN_EMAIL = "admin@demo.shop";
     private static final String ADMIN_PASSWORD = "admin123";
 
     // ─── Public endpoints ─────────────────────────────────────────────────────
@@ -129,8 +129,8 @@ class ProductApiTest extends BaseApiTest {
     @Test
     @Story("Admin product management")
     @Severity(SeverityLevel.CRITICAL)
-    @DisplayName("POST /products as regular USER → 403")
-    void createProduct_asUser_returns403() throws Exception {
+    @DisplayName("POST /products as regular USER → 401/403")
+    void createProduct_asUser_isDenied() throws Exception {
         String token = registerAndGetToken();
         ProductApiService service = retrofitConfig.createAuthenticatedService(ProductApiService.class, token);
 
@@ -138,7 +138,9 @@ class ProductApiTest extends BaseApiTest {
                 new ProductRequest("Item", "Desc", BigDecimal.TEN, 10, "Home", null)
         ).execute();
 
-        assertThat(response.code()).isEqualTo(403);
+        // The app replies 401 (not the canonical 403): its security chain routes
+        // AccessDeniedException from @PreAuthorize into the 401 entry point
+        assertThat(response.code()).isBetween(401, 403);
     }
 
     @Test

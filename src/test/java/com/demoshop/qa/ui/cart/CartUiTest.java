@@ -8,6 +8,10 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.open;
+
 @Epic("Cart UI")
 @Feature("Shopping Cart")
 class CartUiTest extends BaseUiTest {
@@ -61,10 +65,10 @@ class CartUiTest extends BaseUiTest {
     @Severity(SeverityLevel.NORMAL)
     @DisplayName("Unauthenticated user visits cart → redirected to login")
     void cart_unauthenticated_redirectsToLogin() {
-        // Opening /cart without auth should redirect to login
-        new CartPage().open();
-        // After redirect, login page heading should be visible
-        new LoginPage().open(); // Navigates directly to login to confirm accessible
+        // Opening /cart without auth: PrivateRoute must redirect to the login form.
+        // CartPage.open() is unusable here — it waits for the cart heading.
+        open("/cart");
+        $(".auth-card h1").shouldHave(text("Login"));
     }
 
     @Test

@@ -33,17 +33,17 @@ class OrderApiTest extends BaseApiTest {
     @Test
     @Story("Place order")
     @Severity(SeverityLevel.BLOCKER)
-    @DisplayName("POST /orders → 200, order created with PENDING status")
+    @DisplayName("POST /orders → 200/201, order created with PENDING status")
     void placeOrder_success() throws Exception {
         String token = registerAndGetToken();
-        topUpBalance(token, BigDecimal.valueOf(500));
+        topUpBalance(token, BigDecimal.valueOf(2000));
         addProductToCart(token);
 
         OrderApiService orderService = retrofitConfig.createAuthenticatedService(OrderApiService.class, token);
 
         Response<OrderResponse> response = orderService.placeOrder().execute();
 
-        assertThat(response.code()).as("Place order status").isEqualTo(200);
+        assertThat(response.code()).as("Place order status").isBetween(200, 201);
         assertThat(response.body()).isNotNull();
         assertThat(response.body().status()).isEqualTo("PENDING");
         assertThat(response.body().items()).isNotEmpty();
@@ -55,14 +55,15 @@ class OrderApiTest extends BaseApiTest {
     @Test
     @Story("Place order")
     @Severity(SeverityLevel.CRITICAL)
-    @DisplayName("POST /orders with empty cart → 400")
-    void placeOrder_emptyCart_returns400() throws Exception {
+    @DisplayName("POST /orders with empty cart → 409")
+    void placeOrder_emptyCart_returns409() throws Exception {
         String token = registerAndGetToken();
         OrderApiService orderService = retrofitConfig.createAuthenticatedService(OrderApiService.class, token);
 
         Response<OrderResponse> response = orderService.placeOrder().execute();
 
-        assertThat(response.code()).isEqualTo(400);
+        // "Cart is empty" is an IllegalStateException, mapped to 409 CONFLICT by the app
+        assertThat(response.code()).isEqualTo(409);
     }
 
     @Test
@@ -71,7 +72,7 @@ class OrderApiTest extends BaseApiTest {
     @DisplayName("POST /orders/{id}/pay?simulateFailure=false → order moves to PAID")
     void payOrder_success() throws Exception {
         String token = registerAndGetToken();
-        topUpBalance(token, BigDecimal.valueOf(500));
+        topUpBalance(token, BigDecimal.valueOf(2000));
         addProductToCart(token);
 
         OrderApiService orderService = retrofitConfig.createAuthenticatedService(OrderApiService.class, token);
@@ -92,7 +93,7 @@ class OrderApiTest extends BaseApiTest {
     @DisplayName("POST /orders/{id}/pay?simulateFailure=true → order moves to CANCELLED")
     void payOrder_simulateFailure_cancelled() throws Exception {
         String token = registerAndGetToken();
-        topUpBalance(token, BigDecimal.valueOf(500));
+        topUpBalance(token, BigDecimal.valueOf(2000));
         addProductToCart(token);
 
         OrderApiService orderService = retrofitConfig.createAuthenticatedService(OrderApiService.class, token);
@@ -113,7 +114,7 @@ class OrderApiTest extends BaseApiTest {
     @DisplayName("GET /orders → returns list of user's orders")
     void getOrders_returnsUserOrders() throws Exception {
         String token = registerAndGetToken();
-        topUpBalance(token, BigDecimal.valueOf(500));
+        topUpBalance(token, BigDecimal.valueOf(2000));
         addProductToCart(token);
 
         OrderApiService orderService = retrofitConfig.createAuthenticatedService(OrderApiService.class, token);

@@ -46,7 +46,9 @@ public class LoginPage extends BasePage {
     public CatalogPage loginAs(String email, String password) {
         enterEmail(email);
         enterPassword(password);
-        return clickLogin();
+        // Wait for the catalog before returning: navigating away mid-login
+        // would leave the auth token unsaved and break subsequent pages
+        return clickLogin().waitForProducts();
     }
 
     @Step("Click 'Register' link")

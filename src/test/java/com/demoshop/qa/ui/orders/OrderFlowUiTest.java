@@ -40,7 +40,7 @@ class OrderFlowUiTest extends BaseUiTest {
         String token = authResp.body().token();
 
         retrofitConfig.createAuthenticatedService(UserApiService.class, token)
-                .topUp(new TopUpRequest(BigDecimal.valueOf(500))).execute();
+                .topUp(new TopUpRequest(BigDecimal.valueOf(2000))).execute();
 
         // ── 2. Add first product to cart via API ──────────────────────────────
         ProductApiService productService = retrofitConfig.createService(ProductApiService.class);
@@ -85,7 +85,7 @@ class OrderFlowUiTest extends BaseUiTest {
         String token = auth.token();
 
         retrofitConfig.createAuthenticatedService(UserApiService.class, token)
-                .topUp(new TopUpRequest(BigDecimal.valueOf(500))).execute();
+                .topUp(new TopUpRequest(BigDecimal.valueOf(2000))).execute();
 
         PageResponse<ProductResponse> products = retrofitConfig.createService(ProductApiService.class)
                 .getProducts(0, 1, null).execute().body();
