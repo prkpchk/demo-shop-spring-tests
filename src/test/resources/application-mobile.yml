@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/demoshop}
+    username: ${DB_USER:demoshop}
+    password: ${DB_PASSWORD:demoshop}
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  ui-url: ${APP_UI_URL:http://localhost:80}
+
+mobile:
+  platform: ${MOBILE_PLATFORM:android}
+  device-name: ${MOBILE_DEVICE_NAME:emulator-5554}
+  app-path: ${MOBILE_APP_PATH:apps/demo-shop.apk}
+  appium-url: ${APPIUM_URL:http://localhost:4723}
+
+selenide:
+  browser: chrome
+  headless: false

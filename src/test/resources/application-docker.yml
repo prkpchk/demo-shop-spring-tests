@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/demoshop}
+    username: ${DB_USER:demoshop}
+    password: ${DB_PASSWORD:demoshop}
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  ui-url: ${APP_UI_URL:http://localhost:80}
+
+selenide:
+  browser: ${BROWSER:chrome}
+  headless: ${HEADLESS:true}
+  reports-folder: build/reports/selenide
+  video-folder: build/reports/video

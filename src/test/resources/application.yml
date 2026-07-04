@@ -1,0 +1,26 @@
+spring:
+  profiles:
+    active: local
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/demoshop}
+    username: ${DB_USER:demoshop}
+    password: ${DB_PASSWORD:demoshop}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 5
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  ui-url: ${APP_UI_URL:http://localhost:80}
+
+selenide:
+  browser: ${BROWSER:chrome}
+  headless: ${HEADLESS:false}
+  timeout: ${SELENIDE_TIMEOUT:10000}
+  page-load-timeout: ${PAGE_LOAD_TIMEOUT:30000}
+  reports-folder: build/reports/selenide
+  video-folder: build/reports/video
+
+allure:
+  results-dir: build/allure-results

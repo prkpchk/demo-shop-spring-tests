@@ -1,0 +1,134 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.4'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.demoshop'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// This is a pure test-automation framework — there is no executable application to package.
+bootJar { enabled = false }
+jar { enabled = true }
+
+configurations {
+    // Isolated configuration to hold only the AspectJ weaver jar (used as -javaagent)
+    agent
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    allureVersion         = '2.25.0'
+    selenideVersion       = '7.3.1'
+    retrofitVersion       = '2.9.0'
+    okHttpVersion         = '4.12.0'
+    testcontainersVersion = '1.19.8'
+    appiumVersion         = '9.1.0'
+    aspectjVersion        = '1.9.22'
+}
+
+dependencies {
+    // ─── Framework (src/main: core, clients, data, assertions, dataproviders, ui, mobile) ──
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // @TestConfiguration / @ServiceConnection used by core.config.TestcontainersConfig
+    implementation 'org.springframework.boot:spring-boot-test'
+    implementation 'org.springframework.boot:spring-boot-testcontainers'
+
+    // JUnit API for core.junit.extensions.RetryExtension (version managed by Spring Boot BOM)
+    implementation 'org.junit.jupiter:junit-jupiter-api'
+
+    // AssertJ for assertions.DbAssertions (version managed by Spring Boot BOM)
+    implementation 'org.assertj:assertj-core'
+
+    // Lombok
+    compileOnly             'org.projectlombok:lombok'
+    annotationProcessor     'org.projectlombok:lombok'
+    testCompileOnly         'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // Selenide
+    implementation "com.codeborne:selenide:${selenideVersion}"
+
+    // Retrofit2 + OkHttp3
+    implementation "com.squareup.retrofit2:retrofit:${retrofitVersion}"
+    implementation "com.squareup.retrofit2:converter-jackson:${retrofitVersion}"
+    implementation "com.squareup.okhttp3:logging-interceptor:${okHttpVersion}"
+
+    // Jackson extras (Spring Boot BOM manages jackson-databind)
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
+
+    // Allure annotations/attachments in framework code (@Step, AllureOkHttp3)
+    implementation "io.qameta.allure:allure-java-commons:${allureVersion}"
+    implementation "io.qameta.allure:allure-okhttp3:${allureVersion}"
+    implementation "io.qameta.allure:allure-selenide:${allureVersion}"
+
+    // Testcontainers (core.config.TestcontainersConfig)
+    implementation platform("org.testcontainers:testcontainers-bom:${testcontainersVersion}")
+    implementation 'org.testcontainers:postgresql'
+    implementation 'org.testcontainers:selenium'
+
+    // JavaFaker (dataproviders.FakerUtils); snakeyaml comes from spring-boot-starter —
+    // javafaker's own dependency uses the 'android' classifier that does not exist for
+    // the BOM-managed snakeyaml version
+    implementation('com.github.javafaker:javafaker:1.0.2') {
+        exclude group: 'org.yaml', module: 'snakeyaml'
+    }
+
+    // Appium + selenide-appium (mobile pages, core.config.MobileDriverConfig)
+    implementation "io.appium:java-client:${appiumVersion}"
+    implementation "com.codeborne:selenide-appium:${selenideVersion}"
+
+    // PostgreSQL JDBC driver
+    runtimeOnly 'org.postgresql:postgresql:42.7.3'
+
+    // Logback (SLF4J already pulled in by Spring Boot)
+    runtimeOnly 'ch.qos.logback:logback-classic'
+
+    // ─── AspectJ weaver (both as agent and on compile-time classpath) ─────────
+    agent            "org.aspectj:aspectjweaver:${aspectjVersion}"
+    testImplementation "org.aspectj:aspectjweaver:${aspectjVersion}"
+
+    // ─── Test (src/test: base classes and test classes only) ─────────────────
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // JUnit 5 (version managed by Spring Boot BOM)
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly    'org.junit.platform:junit-platform-launcher'
+
+    testImplementation 'org.testcontainers:junit-jupiter'
+
+    // Allure JUnit 5 listener
+    testImplementation "io.qameta.allure:allure-junit5:${allureVersion}"
+}
+
+test {
+    useJUnitPlatform()
+
+    // Attach AspectJ weaver so @Step and other Allure annotations are woven
+    jvmArgs "-javaagent:${configurations.agent.asPath}"
+    jvmArgs '-Dfile.encoding=UTF-8'
+
+    systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
+
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showExceptions  = true
+        showCauses      = true
+        showStackTraces = true
+    }
+
+    // Collect Allure results in the standard location
+    systemProperty 'allure.results.directory', layout.buildDirectory.dir('allure-results').get().asFile.absolutePath
+}

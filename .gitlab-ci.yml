@@ -1,0 +1,73 @@
+image: eclipse-temurin:latest
+
+stages:
+  - start
+  - test
+  - report
+
+variables:
+  DOCKER_HOST: "tcp://docker:2375"
+  DOCKER_TLS_CERTDIR: ""
+  HEADLESS: "true"
+  BROWSER: "chrome"
+  APP_BASE_URL: "http://localhost:8080"
+  APP_UI_URL: "http://localhost:80"
+  DB_URL: "jdbc:postgresql://localhost:5432/demoshop"
+  DB_USER: "demoshop"
+  DB_PASSWORD: "demoshop"
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+
+# Only run on push events
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+
+services:
+  - docker:dind
+
+cache:
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+
+before_script:
+  - apt-get update -qq && apt-get install -y -qq docker-compose curl > /dev/null
+  - chmod +x gradlew
+
+start_stack:
+  stage: start
+  script:
+    - docker-compose -f docker-compose.hub.yml up -d
+    - timeout 120 bash -c "until curl -sf http://localhost:8080/actuator/health; do sleep 5; done"
+  artifacts:
+    name: "stack-logs"
+    when: always
+    paths:
+      - "*.log"
+
+test_api:
+  stage: test
+  parallel: 2
+  script:
+    - ./gradlew test -Dspring.profiles.active=ci -Djunit.jupiter.execution.parallel.config.fixed.parallelism=4 --continue
+  artifacts:
+    when: always
+    paths:
+      - build/allure-results/
+      - build/reports/
+      - build/test-results/
+    reports:
+      junit: build/test-results/**/*.xml
+    expire_in: 1 week
+
+allure_report:
+  stage: report
+  image: frankescobar/allure-docker-service:latest
+  needs: ["test_api"]
+  script:
+    - allure generate build/allure-results --clean -o build/allure-report
+  artifacts:
+    when: always
+    paths:
+      - build/allure-report/
+    expire_in: 1 week
